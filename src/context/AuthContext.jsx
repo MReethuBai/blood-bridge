@@ -11,8 +11,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (token) {
       api.getMe()
-        .then(userData => {
-          setUser(userData);
+        .then(data => {
+          // Server returns { user, profile, hospital } — extract user
+          setUser(data.user || data);
         })
         .catch(err => {
           console.error("Token verification failed:", err);
