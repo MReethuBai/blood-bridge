@@ -10,8 +10,20 @@ import { emitToUser } from '../sockets/socketHandler.js';
 
 const router = express.Router();
 
+// Get Donor Profile
+router.get('/profile', authGuard, roleGuard('donor'), async (req, res) => {
+  try {
+    const profile = await DonorProfile.findOne({ userId: req.user._id });
+    if (!profile) return res.status(404).json({ message: 'Donor profile not found' });
+    res.json({ user: req.user, profile });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching profile', error: error.message });
+  }
+});
+
 // Toggle Availability & Update Profile
 router.put('/profile', authGuard, roleGuard('donor'), async (req, res) => {
+
   try {
     const { availability, bloodGroup } = req.body;
     const profile = await DonorProfile.findOne({ userId: req.user._id });

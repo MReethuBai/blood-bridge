@@ -66,10 +66,11 @@ export default function AuthPage({ initialMode = "login", setActiveTab }) {
   };
 
   const redirectUser = (userRole) => {
-    if (userRole === "DONOR") setActiveTab("donor_dashboard");
-    else if (userRole === "HOSPITAL") setActiveTab("hospital_dashboard");
-    else if (userRole === "BLOOD_BANK") setActiveTab("blood_bank_dashboard");
-    else if (userRole === "ADMIN") setActiveTab("admin_dashboard");
+    const role = (userRole || "").toLowerCase();
+    if (role === "donor") setActiveTab("donor_dashboard");
+    else if (role === "hospitaladmin" || role === "hospital") setActiveTab("hospital_dashboard");
+    else if (role === "bloodbank" || role === "blood_bank") setActiveTab("blood_bank_dashboard");
+    else if (role === "admin") setActiveTab("admin_dashboard");
     else setActiveTab("home");
   };
 

@@ -9,8 +9,20 @@ import { emitToUser, broadcastEvent } from '../sockets/socketHandler.js';
 
 const router = express.Router();
 
+// Get current admin's hospital profile
+router.get('/me', authGuard, roleGuard('hospitalAdmin'), async (req, res) => {
+  try {
+    const hospital = await Hospital.findOne({ adminId: req.user._id }).populate('adminId', 'name email');
+    if (!hospital) return res.status(404).json({ message: 'Hospital profile not found' });
+    res.json({ hospital });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching hospital profile', error: error.message });
+  }
+});
+
 // Get all verified hospitals with inventory & location
 router.get('/', async (req, res) => {
+
   try {
     const hospitals = await Hospital.find().populate('adminId', 'name email phone');
     res.json(hospitals);

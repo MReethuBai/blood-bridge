@@ -12,11 +12,23 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
   try {
     const { 
-      name, phone, email, password, role, 
-      aadharNumber, bloodGroup,
+      name, phone, email, password,
+      aadharNumber, bloodGroup, blood_group,
       hospitalName, licenseNumber, govtRegId,
       latitude, longitude 
     } = req.body;
+
+    // Map frontend role names to backend role names
+    const roleMap = {
+      'DONOR': 'donor', 'HOSPITAL': 'hospitalAdmin',
+      'BLOOD_BANK': 'bloodBank', 'ADMIN': 'admin',
+      'donor': 'donor', 'hospitalAdmin': 'hospitalAdmin',
+      'bloodBank': 'bloodBank', 'admin': 'admin', 'receiver': 'receiver'
+    };
+    const role = roleMap[req.body.role] || req.body.role;
+
+    // Accept blood_group or bloodGroup
+    const resolvedBloodGroup = bloodGroup || blood_group || 'O+';
 
     // Check existing
     const orConditions = [{ email }];
@@ -26,15 +38,12 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User with this email or phone already exists' });
     }
 
-    // Aadhaar Verification if provided
+    // Aadhaar Verification (optional — only validate if provided)
     let aadharHash = null;
     let aadharLast4 = null;
     let verificationStatus = 'verified';
 
-    if (role === 'donor' || role === 'receiver') {
-      if (!aadharNumber) {
-        return res.status(400).json({ message: 'Aadhaar number is required for donors and receivers.' });
-      }
+    if (aadharNumber) {
       const isValid = validateAadhaarVerhoeff(aadharNumber);
       if (!isValid) {
         return res.status(400).json({ message: 'Invalid 12-digit Aadhaar number (failed Verhoeff checksum).' });
@@ -54,7 +63,7 @@ router.post('/register', async (req, res) => {
 
     const user = new User({
       name,
-      phone,
+      phone: phone || undefined,
       email,
       passwordHash,
       role,
@@ -70,7 +79,7 @@ router.post('/register', async (req, res) => {
     if (role === 'donor') {
       await DonorProfile.create({
         userId: user._id,
-        bloodGroup: bloodGroup || 'O+',
+        bloodGroup: resolvedBloodGroup,
         availability: true,
         reliabilityScore: 90
       });
@@ -78,7 +87,7 @@ router.post('/register', async (req, res) => {
       const hCheck = await verifyHospitalLicense(licenseNumber || 'LIC-2026-10001', govtRegId || 'KA-GOVT-001');
       
       const hospital = new Hospital({
-        name: hospitalName || `${name}'s Medical Center`,
+        name: hospitalName || name || `${name}'s Medical Center`,
         licenseNumber: licenseNumber || `LIC-2026-${Math.floor(10000 + Math.random() * 90000)}`,
         govtRegId: govtRegId || `KA-GOVT-${Math.floor(100 + Math.random() * 900)}`,
         adminId: user._id,
@@ -114,6 +123,7 @@ router.post('/register', async (req, res) => {
     res.status(500).json({ message: 'Server error during registration', error: error.message });
   }
 });
+
 
 // User Login
 router.post('/login', async (req, res) => {

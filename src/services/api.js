@@ -1,13 +1,10 @@
 const getApiBaseUrl = () => {
-  // Use environment variable if set (recommended for production)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // Local development
   if (typeof window !== "undefined" && window.location.hostname === "localhost") {
     return "http://localhost:5000/api";
   }
-  // Production: use same protocol as the page (https) with /api proxy
   return "/api";
 };
 
@@ -62,14 +59,14 @@ export const api = {
 
   // Donor
   getDonorProfile: async () => {
-    const res = await fetch(`${API_BASE_URL}/donor/profile`, {
+    const res = await fetch(`${API_BASE_URL}/donors/profile`, {
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
   updateDonorProfile: async (data) => {
-    const res = await fetch(`${API_BASE_URL}/donor/profile`, {
+    const res = await fetch(`${API_BASE_URL}/donors/profile`, {
       method: "PUT",
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -78,39 +75,70 @@ export const api = {
   },
 
   getDonorNotifications: async () => {
-    const res = await fetch(`${API_BASE_URL}/donor/notifications`, {
+    const res = await fetch(`${API_BASE_URL}/donors/matches`, {
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
-  respondToRequest: async (requestId, action) => {
-    const res = await fetch(`${API_BASE_URL}/donor/requests/respond`, {
+  getDonorDonations: async () => {
+    const res = await fetch(`${API_BASE_URL}/donors/donations`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  respondToMatch: async (matchId, response) => {
+    const res = await fetch(`${API_BASE_URL}/donors/matches/${matchId}/respond`, {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify({ request_id: requestId, action })
+      body: JSON.stringify({ response })
     });
     return handleResponse(res);
   },
 
   // Hospital
   getHospitalProfile: async () => {
-    const res = await fetch(`${API_BASE_URL}/hospital/profile`, {
+    const res = await fetch(`${API_BASE_URL}/hospitals/me`, {
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
-  verifyHospitalSelf: async () => {
-    const res = await fetch(`${API_BASE_URL}/hospital/verify-self`, {
+  getAllHospitals: async () => {
+    const res = await fetch(`${API_BASE_URL}/hospitals`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  updateHospitalInventory: async (bloodGroup, units, action = "set") => {
+    const res = await fetch(`${API_BASE_URL}/hospitals/inventory`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify({ bloodGroup, units, action })
+    });
+    return handleResponse(res);
+  },
+
+  getHospitalTransfers: async () => {
+    const res = await fetch(`${API_BASE_URL}/hospitals/transfers/my`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  acceptTransfer: async (transferId) => {
+    const res = await fetch(`${API_BASE_URL}/hospitals/transfers/${transferId}/accept`, {
       method: "POST",
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
+  // Blood Requests
   createEmergencyRequest: async (requestData) => {
-    const res = await fetch(`${API_BASE_URL}/hospital/requests`, {
+    const res = await fetch(`${API_BASE_URL}/requests`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(requestData)
@@ -118,30 +146,38 @@ export const api = {
     return handleResponse(res);
   },
 
+  getRequests: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE_URL}/requests${query ? `?${query}` : ""}`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
   getHospitalRequests: async () => {
-    const res = await fetch(`${API_BASE_URL}/hospital/requests`, {
+    const res = await fetch(`${API_BASE_URL}/requests`, {
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
-  getRequestMatches: async (requestId) => {
-    const res = await fetch(`${API_BASE_URL}/hospital/requests/${requestId}/matches`, {
+  getRequestDetails: async (requestId) => {
+    const res = await fetch(`${API_BASE_URL}/requests/${requestId}`, {
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
-  fulfillRequest: async (requestId) => {
-    const res = await fetch(`${API_BASE_URL}/hospital/requests/${requestId}/fulfill`, {
+  triggerMatching: async (requestId) => {
+    const res = await fetch(`${API_BASE_URL}/requests/${requestId}/match`, {
       method: "POST",
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
-  sendDonorAlert: async (data) => {
-    const res = await fetch(`${API_BASE_URL}/hospital/send-alert`, {
+  confirmDonation: async (requestId, data) => {
+    const res = await fetch(`${API_BASE_URL}/requests/${requestId}/confirm-donation`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -149,71 +185,70 @@ export const api = {
     return handleResponse(res);
   },
 
-  // Blood Bank API
-  getBloodBankProfile: async () => {
-    const res = await fetch(`${API_BASE_URL}/blood-bank/profile`, {
-      headers: getHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  updateBloodBankInventory: async (inventory) => {
-    const res = await fetch(`${API_BASE_URL}/blood-bank/inventory`, {
-      method: "PUT",
-      headers: getHeaders(),
-      body: JSON.stringify({ inventory })
-    });
-    return handleResponse(res);
-  },
-
-  getBloodBankHospitalRequests: async () => {
-    const res = await fetch(`${API_BASE_URL}/blood-bank/hospital-requests`, {
-      headers: getHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  dispatchBloodBankDelivery: async (requestId) => {
-    const res = await fetch(`${API_BASE_URL}/blood-bank/dispatch`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify({ request_id: requestId })
-    });
-    return handleResponse(res);
-  },
-
   // Admin
   getPendingHospitals: async () => {
-    const res = await fetch(`${API_BASE_URL}/admin/hospitals/pending`, {
+    const res = await fetch(`${API_BASE_URL}/hospitals`, {
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
   verifyHospital: async (hospitalId, action) => {
-    const res = await fetch(`${API_BASE_URL}/admin/hospitals/verify`, {
+    const res = await fetch(`${API_BASE_URL}/hospitals/${hospitalId}/verify`, {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify({ hospital_id: hospitalId, action })
+      body: JSON.stringify({ action })
     });
     return handleResponse(res);
   },
 
   getAdminStats: async () => {
-    const res = await fetch(`${API_BASE_URL}/admin/stats`, {
+    const res = await fetch(`${API_BASE_URL}/requests`, {
       headers: getHeaders()
     });
     return handleResponse(res);
   },
 
-  // AI & Demo
+  // Blood Bank (mapped to hospitals routes)
+  getBloodBankProfile: async () => {
+    const res = await fetch(`${API_BASE_URL}/hospitals/me`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  updateBloodBankInventory: async (bloodGroup, units) => {
+    const res = await fetch(`${API_BASE_URL}/hospitals/inventory`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify({ bloodGroup, units, action: "set" })
+    });
+    return handleResponse(res);
+  },
+
+  getBloodBankHospitalRequests: async () => {
+    const res = await fetch(`${API_BASE_URL}/requests`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  dispatchBloodBankDelivery: async (requestId) => {
+    const res = await fetch(`${API_BASE_URL}/requests/${requestId}/match`, {
+      method: "POST",
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  // Demand prediction (health check fallback)
   getDemandPrediction: async () => {
-    const res = await fetch(`${API_BASE_URL}/ai/predict-demand`);
+    const res = await fetch(`${API_BASE_URL}/health`);
     return handleResponse(res);
   },
 
   seedDemoData: async () => {
-    const res = await fetch(`${API_BASE_URL}/seed`, {
+    const res = await fetch(`${API_BASE_URL}/auth/seed`, {
       method: "POST",
       headers: getHeaders()
     });
