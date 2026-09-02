@@ -4,7 +4,6 @@ import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
 import authRoutes from './routes/auth.js';
 import hospitalRoutes from './routes/hospitals.js';
@@ -52,30 +51,28 @@ app.get('/api/health', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-  let mongoUri = process.env.MONGODB_URI;
+  const mongoUri = process.env.MONGODB_URI;
+
+  if (!mongoUri) {
+    console.error('❌ MONGODB_URI environment variable is not set!');
+    process.exit(1);
+  }
 
   try {
-    if (mongoUri) {
-      console.log('📡 Connecting to external MongoDB instance...');
-      await mongoose.connect(mongoUri);
-      console.log('✅ Connected to MongoDB!');
-    } else {
-      console.log('⚡ MONGODB_URI not set. Launching MongoDB In-Memory Server for local hackathon demo...');
-      const mongoServer = await MongoMemoryServer.create();
-      mongoUri = mongoServer.getUri();
-      await mongoose.connect(mongoUri);
-      console.log('✅ Connected to MongoMemoryServer!');
-    }
+    console.log('📡 Connecting to MongoDB Atlas...');
+    await mongoose.connect(mongoUri);
+    console.log('✅ Connected to MongoDB Atlas!');
 
     // Auto-seed if database is fresh
     await seedDatabase();
 
     server.listen(PORT, () => {
-      console.log(`🚀 eRaktKosh AI Backend running on http://localhost:${PORT}`);
-      console.log(`⚡ WebSockets listening on ws://localhost:${PORT}`);
+      console.log(`🚀 eRaktKosh AI Backend running on port ${PORT}`);
+      console.log(`⚡ WebSockets listening on port ${PORT}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
+    process.exit(1);
   }
 }
 
