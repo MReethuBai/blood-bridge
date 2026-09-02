@@ -13,17 +13,31 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/eraktkosh_db';
 
 export async function seedDatabase() {
+  // Only seed if database is completely empty (first run only)
+  const existingUsers = await User.countDocuments();
+  if (existingUsers > 0) {
+    console.log('ℹ️ Database already has data — skipping seed.');
+    return;
+  }
+
   console.log('🌱 Starting eRaktKosh Seed Data Insertion...');
 
-  // Clear existing collections
+  // Clear existing collections (safe since we confirmed empty above)
   await User.deleteMany({});
   await DonorProfile.deleteMany({});
   await Hospital.deleteMany({});
   await BloodRequest.deleteMany({});
   await GovtRegistry.deleteMany({});
 
+
   const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash('password123', salt);
+  // Passwords match 1-Click Demo Login buttons in the frontend
+  const hospitalPass = await bcrypt.hash('Hospital@123', salt);
+  const donorPass = await bcrypt.hash('Donor@123', salt);
+  const bankPass = await bcrypt.hash('Bank@123', salt);
+  const adminPass = await bcrypt.hash('Admin@123', salt);
+  const genericPass = await bcrypt.hash('password123', salt);
+
 
   // 1. Seed Government Registry for Hospital License Simulation
   await GovtRegistry.insertMany([
@@ -92,7 +106,7 @@ export async function seedDatabase() {
       name: item.adminName,
       phone: item.phone,
       email: item.email,
-      passwordHash,
+      passwordHash: hospitalPass,
       role: 'hospitalAdmin',
       verificationStatus: 'verified',
       location: { type: 'Point', coordinates: item.coordinates }
@@ -127,7 +141,7 @@ export async function seedDatabase() {
       name: item.name,
       phone: item.phone,
       email: item.email,
-      passwordHash,
+      passwordHash: donorPass,
       role: 'donor',
       aadharHash,
       aadharLast4,
@@ -151,7 +165,7 @@ export async function seedDatabase() {
     name: 'Kavita Menon (Patient Attendant)',
     phone: '9888777666',
     email: 'kavita.receiver@gmail.com',
-    passwordHash,
+    passwordHash: genericPass,
     role: 'receiver',
     aadharHash: rHash,
     aadharLast4: rLast4,
@@ -159,6 +173,68 @@ export async function seedDatabase() {
     location: { type: 'Point', coordinates: [77.5960, 12.9700] }
   });
   await receiverUser.save();
+
+  // 5. Seed 1-Click Demo Login Users (matching frontend buttons)
+  const demoHospital = new User({
+    name: 'Metro General Hospital',
+    email: 'hospital@metro.org',
+    passwordHash: hospitalPass,
+    role: 'hospitalAdmin',
+    verificationStatus: 'verified',
+    location: { type: 'Point', coordinates: [77.5946, 12.9716] }
+  });
+  await demoHospital.save();
+  await Hospital.create({
+    name: 'Metro General Hospital',
+    licenseNumber: 'LIC-2026-99001',
+    govtRegId: 'KA-GOVT-099',
+    adminId: demoHospital._id,
+    verificationStatus: 'verified',
+    location: { type: 'Point', coordinates: [77.5946, 12.9716] },
+    inventory: [
+      { bloodGroup: 'A+', units: 10, lastUpdated: new Date() },
+      { bloodGroup: 'B+', units: 8, lastUpdated: new Date() },
+      { bloodGroup: 'O+', units: 20, lastUpdated: new Date() },
+      { bloodGroup: 'AB+', units: 4, lastUpdated: new Date() },
+      { bloodGroup: 'O-', units: 2, lastUpdated: new Date() }
+    ]
+  });
+
+  const demoDonor = new User({
+    name: 'Demo Donor',
+    email: 'donor@example.com',
+    passwordHash: donorPass,
+    role: 'donor',
+    verificationStatus: 'verified',
+    location: { type: 'Point', coordinates: [77.5980, 12.9680] }
+  });
+  await demoDonor.save();
+  await DonorProfile.create({
+    userId: demoDonor._id,
+    bloodGroup: 'O+',
+    availability: true,
+    reliabilityScore: 90
+  });
+
+  const demoAdmin = new User({
+    name: 'Chief Admin',
+    email: 'admin@bloodbridge.ai',
+    passwordHash: adminPass,
+    role: 'admin',
+    verificationStatus: 'verified',
+    location: { type: 'Point', coordinates: [77.5946, 12.9716] }
+  });
+  await demoAdmin.save();
+
+  const demoBloodBank = new User({
+    name: 'Red Cross Blood Bank',
+    email: 'bloodbank@redcross.org',
+    passwordHash: bankPass,
+    role: 'bloodBank',
+    verificationStatus: 'verified',
+    location: { type: 'Point', coordinates: [77.6070, 12.9352] }
+  });
+  await demoBloodBank.save();
 
   // 5. Seed Sample Active Blood Request
   await BloodRequest.create({
