@@ -1,9 +1,14 @@
 const getApiBaseUrl = () => {
-  if (typeof window !== "undefined" && window.location && window.location.hostname) {
-    const host = window.location.hostname;
-    return `http://${host}:5000/api`;
+  // Use environment variable if set (recommended for production)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
-  return "http://localhost:5000/api";
+  // Local development
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:5000/api";
+  }
+  // Production: use same protocol as the page (https) with /api proxy
+  return "/api";
 };
 
 const API_BASE_URL = getApiBaseUrl();
