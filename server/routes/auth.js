@@ -19,7 +19,9 @@ router.post('/register', async (req, res) => {
     } = req.body;
 
     // Check existing
-    const existing = await User.findOne({ $or: [{ email }, { phone }] });
+    const orConditions = [{ email }];
+    if (phone) orConditions.push({ phone });
+    const existing = await User.findOne({ $or: orConditions });
     if (existing) {
       return res.status(400).json({ message: 'User with this email or phone already exists' });
     }

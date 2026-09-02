@@ -2,12 +2,12 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  phone: { type: String, required: true, unique: true, trim: true },
+  phone: { type: String, required: false, unique: true, sparse: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true },
   role: { 
     type: String, 
-    enum: ['hospitalAdmin', 'donor', 'receiver'], 
+    enum: ['hospitalAdmin', 'donor', 'receiver', 'admin', 'bloodBank'], 
     required: true 
   },
   aadharHash: { type: String, default: null },
